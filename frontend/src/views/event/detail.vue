@@ -37,16 +37,20 @@
       </template>
       <el-table :data="sportItems" border stripe>
         <el-table-column prop="name" label="项目名称" />
-        <el-table-column prop="categoryName" label="类别" width="100" />
-        <el-table-column prop="genderName" label="性别要求" width="100" />
+        <el-table-column label="类别" width="100">
+          <template #default="{ row }">{{ itemTypeName(row.type) }}</template>
+        </el-table-column>
+        <el-table-column label="性别要求" width="100">
+          <template #default="{ row }">{{ genderLimitName(row.genderLimit) }}</template>
+        </el-table-column>
         <el-table-column prop="maxParticipants" label="人数上限" width="100" />
         <el-table-column prop="currentParticipants" label="已报名" width="100" />
         <el-table-column prop="rules" label="比赛规则" />
         <el-table-column label="操作" width="120" v-if="canRegister">
           <template #default="{ row }">
-            <el-button 
-              type="primary" 
-              link 
+            <el-button
+              type="primary"
+              link
               @click="handleRegisterItem(row)"
               :disabled="row.currentParticipants >= row.maxParticipants"
             >
@@ -70,10 +74,10 @@
           placement="top"
         >
           <el-card shadow="hover">
-            <h4>{{ item.sportItemName }} - {{ item.roundName }}</h4>
-            <p>地点：{{ item.venue }}</p>
-            <p v-if="item.groupName">分组：{{ item.groupName }}</p>
-            <p>状态：<el-tag :type="getScheduleStatusType(item.status)">{{ item.statusName }}</el-tag></p>
+            <h4>{{ item.sportItemName }} - {{ scheduleName(item) }}</h4>
+            <p>地点：{{ item.location }}</p>
+            <p v-if="item.groupNo">分组：{{ item.groupNo }}</p>
+            <p>状态：<el-tag :type="getScheduleStatusType(item.status)">{{ scheduleStatusName(item.status) }}</el-tag></p>
           </el-card>
         </el-timeline-item>
       </el-timeline>
@@ -85,10 +89,10 @@
       <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" label-width="100px">
         <el-form-item label="运动项目" prop="sportItemId">
           <el-select v-model="registerForm.sportItemId" placeholder="请选择">
-            <el-option 
-              v-for="item in availableItems" 
-              :key="item.id" 
-              :label="item.name" 
+            <el-option
+              v-for="item in availableItems"
+              :key="item.id"
+              :label="item.name"
               :value="item.id"
               :disabled="item.currentParticipants >= item.maxParticipants"
             />
@@ -112,14 +116,18 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, FormInstance, FormRules } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { get, post } from '@/utils/request'
+import { getEventDetail } from '@/api/event'
+import { pageSportItems } from '@/api/sportitem'
+import type { Event, EventStatus } from '@/types/event'
+import type { SportItem } from '@/types/sportitem'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
 const loading = ref(false)
-const eventData = ref<any>({})
-const sportItems = ref<any[]>([])
+const eventData = ref<Event>({} as Event)
+const sportItems = ref<SportItem[]>([])
 const schedules = ref<any[]>([])
 
 const registerDialogVisible = ref(false)
@@ -135,9 +143,9 @@ const registerRules: FormRules = {
 }
 
 const canRegister = computed(() => {
-  return userStore.userInfo?.role === 'STUDENT' && 
-         eventData.value.status === 'PUBLISHED' &&
-         new Date() <= new Date(eventData.value.regEndDate)
+  return userStore.userInfo?.role === 'STUDENT' &&
+         eventData.value.status === 2 &&
+         new Date() <= new Date(eventData.value.regEndDate ?? '')
 })
 
 const availableItems = computed(() => {
@@ -149,25 +157,22 @@ onMounted(() => {
 })
 
 async function loadEventDetail() {
-  const eventId = route.params.id
+  const eventId = Number(route.params.id)
   loading.value = true
   try {
-    // 加载赛事详情
-    const res = await get(`/events/${eventId}`)
+    const res = await getEventDetail(eventId)
     if (res.code === 200) {
       eventData.value = res.data
     }
-    
-    // 加载运动项目
-    const itemsRes = await get(`/sport-items`, { eventId, size: 100 })
+
+    const itemsRes = await pageSportItems({ eventId, size: 100 })
     if (itemsRes.code === 200) {
-      sportItems.value = itemsRes.data.records || []
+      sportItems.value = itemsRes.data.records
     }
-    
-    // 加载赛程
-    const schedulesRes = await get(`/schedules`, { eventId, size: 100 })
+
+    const schedulesRes = await get('/schedules', { eventId, size: 100 })
     if (schedulesRes.code === 200) {
-      schedules.value = schedulesRes.data.records || []
+      schedules.value = schedulesRes.data.records
     }
   } finally {
     loading.value = false
@@ -178,25 +183,45 @@ function goBack() {
   router.push('/events')
 }
 
-function getStatusType(status: string) {
-  const map: Record<string, string> = {
-    DRAFT: 'info',
-    PUBLISHED: 'primary',
-    ONGOING: 'success',
-    ENDED: 'warning',
-    CANCELLED: 'danger'
+function getStatusType(status: EventStatus): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
+  const map: Record<EventStatus, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
+    1: 'info',
+    2: 'primary',
+    3: 'success',
+    4: 'warning'
   }
   return map[status] || 'info'
 }
 
-function getScheduleStatusType(status: string) {
+function itemTypeName(type: string) {
   const map: Record<string, string> = {
-    PENDING: 'info',
-    ONGOING: 'primary',
-    COMPLETED: 'success',
-    CANCELLED: 'danger'
+    TRACK: '径赛',
+    FIELD: '田赛',
+    BALL: '球类',
+    SWIMMING: '游泳',
+    WATER: '水上',
+    OTHER: '其他'
   }
+  return map[type] || type
+}
+
+function genderLimitName(limit: number) {
+  const map: Record<number, string> = { 0: '不限', 1: '仅男', 2: '仅女' }
+  return map[limit] ?? '不限'
+}
+
+function scheduleName(item: any) {
+  return item.scheduleName || (item.roundNo ? `第${item.roundNo}轮` : '')
+}
+
+function getScheduleStatusType(status: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
+  const map: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = { 1: 'info', 2: 'primary', 3: 'success' }
   return map[status] || 'info'
+}
+
+function scheduleStatusName(status: number) {
+  const map: Record<number, string> = { 1: '未开始', 2: '进行中', 3: '已结束' }
+  return map[status] ?? '未知'
 }
 
 function handleRegister() {
@@ -205,7 +230,7 @@ function handleRegister() {
   registerDialogVisible.value = true
 }
 
-function handleRegisterItem(item: any) {
+function handleRegisterItem(item: SportItem) {
   registerForm.sportItemId = item.id
   registerForm.remark = ''
   registerDialogVisible.value = true

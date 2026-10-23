@@ -27,10 +27,16 @@
       <!-- 数据表格 -->
       <el-table :data="tableData" v-loading="loading" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="eventName" label="所属赛事" min-width="150" />
+        <el-table-column label="所属赛事" min-width="150">
+          <template #default="{ row }">{{ eventName(row.eventId) }}</template>
+        </el-table-column>
         <el-table-column prop="name" label="项目名称" width="150" />
-        <el-table-column prop="categoryName" label="类别" width="100" />
-        <el-table-column prop="genderLimitName" label="性别限制" width="100" />
+        <el-table-column label="类别" width="100">
+          <template #default="{ row }">{{ itemTypeName(row.type) }}</template>
+        </el-table-column>
+        <el-table-column label="性别限制" width="100">
+          <template #default="{ row }">{{ genderLimitName(row.genderLimit) }}</template>
+        </el-table-column>
         <el-table-column prop="maxParticipants" label="人数上限" width="100" />
         <el-table-column prop="currentParticipants" label="已报名" width="100" />
         <el-table-column prop="rules" label="比赛规则" min-width="200" show-overflow-tooltip />
@@ -71,7 +77,7 @@
             <el-option label="径赛(跑步)" value="TRACK" />
             <el-option label="田赛(跳跃/投掷)" value="FIELD" />
             <el-option label="球类" value="BALL" />
-            <el-option label="水上项目" value="WATER" />
+            <el-option label="游泳" value="SWIMMING" />
             <el-option label="其他" value="OTHER" />
           </el-select>
         </el-form-item>
@@ -100,12 +106,15 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
-import { get, post, put, del } from '@/utils/request'
+import { pageEvents } from '@/api/event'
+import { pageSportItems, createSportItem, updateSportItem, deleteSportItem } from '@/api/sportitem'
+import type { Event } from '@/types/event'
+import type { SportItem, SportItemDTO } from '@/types/sportitem'
 
 const loading = ref(false)
-const tableData = ref<any[]>([])
+const tableData = ref<SportItem[]>([])
 const total = ref(0)
-const eventOptions = ref<any[]>([])
+const eventOptions = ref<Event[]>([])
 
 const queryParams = reactive({
   current: 1,
@@ -141,16 +150,16 @@ onMounted(() => {
 })
 
 async function loadEventOptions() {
-  const res = await get('/events', { size: 100 })
+  const res = await pageEvents({ size: 100 })
   if (res.code === 200) {
-    eventOptions.value = res.data.records || []
+    eventOptions.value = res.data.records
   }
 }
 
 async function loadData() {
   loading.value = true
   try {
-    const res = await get('/sport-items', queryParams)
+    const res = await pageSportItems(queryParams)
     if (res.code === 200) {
       tableData.value = res.data.records
       total.value = res.data.total
@@ -167,6 +176,27 @@ function resetQuery() {
   loadData()
 }
 
+function eventName(eventId: number) {
+  return eventOptions.value.find(e => e.id === eventId)?.name ?? `赛事#${eventId}`
+}
+
+function itemTypeName(type: string) {
+  const map: Record<string, string> = {
+    TRACK: '径赛',
+    FIELD: '田赛',
+    BALL: '球类',
+    SWIMMING: '游泳',
+    WATER: '水上',
+    OTHER: '其他'
+  }
+  return map[type] || type
+}
+
+function genderLimitName(limit: number) {
+  const map: Record<number, string> = { 0: '不限', 1: '仅男', 2: '仅女' }
+  return map[limit] ?? '不限'
+}
+
 function handleAdd() {
   editingId.value = null
   dialogTitle.value = '新增项目'
@@ -177,10 +207,17 @@ function handleAdd() {
   dialogVisible.value = true
 }
 
-function handleEdit(row: any) {
+function handleEdit(row: SportItem) {
   editingId.value = row.id
   dialogTitle.value = '编辑项目'
-  Object.assign(formData, row)
+  Object.assign(formData, {
+    eventId: row.eventId,
+    name: row.name,
+    type: row.type,
+    genderLimit: row.genderLimit,
+    maxParticipants: row.maxParticipants,
+    rules: row.rules
+  })
   dialogVisible.value = true
 }
 
@@ -190,11 +227,19 @@ async function handleSubmit() {
     if (!valid) return
     submitLoading.value = true
     try {
+      const data: SportItemDTO = {
+        eventId: formData.eventId as number,
+        name: formData.name,
+        type: formData.type,
+        genderLimit: formData.genderLimit,
+        maxParticipants: formData.maxParticipants,
+        rules: formData.rules
+      }
       if (editingId.value) {
-        await put(`/sport-items/${editingId.value}`, formData)
+        await updateSportItem(editingId.value, data)
         ElMessage.success('更新成功')
       } else {
-        await post('/sport-items', formData)
+        await createSportItem(data)
         ElMessage.success('创建成功')
       }
       dialogVisible.value = false
@@ -205,9 +250,9 @@ async function handleSubmit() {
   })
 }
 
-async function handleDelete(row: any) {
+async function handleDelete(row: SportItem) {
   await ElMessageBox.confirm('确定要删除该项目吗？', '提示', { type: 'warning' })
-  await del(`/sport-items/${row.id}`)
+  await deleteSportItem(row.id)
   ElMessage.success('删除成功')
   loadData()
 }
