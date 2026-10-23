@@ -127,16 +127,19 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { get, post, put, del } from '@/utils/request'
+import { pageNews, getNewsDetail, createNews, updateNews, deleteNews, publishNews, offlineNews } from '@/api/news'
+import { pageEvents } from '@/api/event'
+import type { Event } from '@/types/event'
+import type { News, NewsDTO } from '@/types/news'
 
 const userStore = useUserStore()
 
 const isAdmin = computed(() => userStore.userInfo?.role === 'ADMIN')
 
 const loading = ref(false)
-const tableData = ref<any[]>([])
+const tableData = ref<News[]>([])
 const total = ref(0)
-const eventOptions = ref<any[]>([])
+const eventOptions = ref<Event[]>([])
 
 const queryParams = reactive({
   current: 1,
@@ -152,10 +155,10 @@ const submitLoading = ref(false)
 const formRef = ref<FormInstance>()
 const editingId = ref<number | null>(null)
 
-const formData = reactive({
+const formData = reactive<NewsDTO>({
   title: '',
   type: '',
-  eventId: null as number | null,
+  eventId: null,
   content: '',
   isTop: 0
 })
@@ -167,7 +170,7 @@ const rules: FormRules = {
 }
 
 const detailDialogVisible = ref(false)
-const currentNews = ref<any>({})
+const currentNews = ref<News>({} as News)
 
 onMounted(() => {
   loadEventOptions()
@@ -175,16 +178,16 @@ onMounted(() => {
 })
 
 async function loadEventOptions() {
-  const res = await get('/events', { size: 100 })
+  const res = await pageEvents({ size: 100 })
   if (res.code === 200) {
-    eventOptions.value = res.data.records || []
+    eventOptions.value = res.data.records
   }
 }
 
 async function loadData() {
   loading.value = true
   try {
-    const res = await get('/news', queryParams)
+    const res = await pageNews(queryParams)
     if (res.code === 200) {
       tableData.value = res.data.records
       total.value = res.data.total
@@ -202,8 +205,8 @@ function resetQuery() {
   loadData()
 }
 
-function getTypeTagType(type: string) {
-  const map: Record<string, string> = {
+function getTypeTagType(type: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
+  const map: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     ANNOUNCEMENT: 'danger',
     NEWS: 'primary',
     NOTICE: 'warning'
@@ -211,11 +214,11 @@ function getTypeTagType(type: string) {
   return map[type] || 'info'
 }
 
-function getStatusType(status: number) {
-  const map: Record<number, string> = {
-    0: 'info',      // 草稿
-    1: 'success',   // 已发布
-    2: 'warning'    // 已下架
+function getStatusType(status: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
+  const map: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
+    0: 'info',
+    1: 'success',
+    2: 'warning'
   }
   return map[status] || 'info'
 }
@@ -229,15 +232,21 @@ function handleAdd() {
   dialogVisible.value = true
 }
 
-function handleEdit(row: any) {
+function handleEdit(row: News) {
   editingId.value = row.id
   dialogTitle.value = '编辑资讯'
-  Object.assign(formData, row)
+  Object.assign(formData, {
+    title: row.title,
+    type: row.type,
+    eventId: row.eventId ?? null,
+    content: row.content,
+    isTop: row.isTop
+  })
   dialogVisible.value = true
 }
 
-async function handleView(row: any) {
-  const res = await get(`/news/${row.id}`)
+async function handleView(row: News) {
+  const res = await getNewsDetail(row.id)
   if (res.code === 200) {
     currentNews.value = res.data
     detailDialogVisible.value = true
@@ -251,10 +260,10 @@ async function handleSubmit() {
     submitLoading.value = true
     try {
       if (editingId.value) {
-        await put(`/news/${editingId.value}`, formData)
+        await updateNews(editingId.value, formData)
         ElMessage.success('更新成功')
       } else {
-        await post('/news', formData)
+        await createNews(formData)
         ElMessage.success('创建成功')
       }
       dialogVisible.value = false
@@ -265,23 +274,23 @@ async function handleSubmit() {
   })
 }
 
-async function handlePublish(row: any) {
+async function handlePublish(row: News) {
   await ElMessageBox.confirm('确定要发布该资讯吗？', '提示', { type: 'warning' })
-  await post(`/news/${row.id}/publish`)
+  await publishNews(row.id)
   ElMessage.success('发布成功')
   loadData()
 }
 
-async function handleOffline(row: any) {
+async function handleOffline(row: News) {
   await ElMessageBox.confirm('确定要下架该资讯吗？', '提示', { type: 'warning' })
-  await post(`/news/${row.id}/offline`)
+  await offlineNews(row.id)
   ElMessage.success('下架成功')
   loadData()
 }
 
-async function handleDelete(row: any) {
+async function handleDelete(row: News) {
   await ElMessageBox.confirm('确定要删除该资讯吗？', '提示', { type: 'warning' })
-  await del(`/news/${row.id}`)
+  await deleteNews(row.id)
   ElMessage.success('删除成功')
   loadData()
 }

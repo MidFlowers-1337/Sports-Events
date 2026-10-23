@@ -16,11 +16,10 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="queryParams.status" placeholder="请选择" clearable>
-            <el-option label="草稿" value="DRAFT" />
-            <el-option label="已发布" value="PUBLISHED" />
-            <el-option label="进行中" value="ONGOING" />
-            <el-option label="已结束" value="ENDED" />
-            <el-option label="已取消" value="CANCELLED" />
+            <el-option label="草稿" :value="1" />
+            <el-option label="报名中" :value="2" />
+            <el-option label="进行中" :value="3" />
+            <el-option label="已结束" :value="4" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -54,9 +53,9 @@
           <template #default="{ row }">
             <el-button type="primary" link @click="handleView(row)">查看</el-button>
             <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
-            <el-button v-if="row.status === 'DRAFT'" type="success" link @click="handlePublish(row)">发布</el-button>
-            <el-button v-if="row.status !== 'ENDED' && row.status !== 'CANCELLED'" type="danger" link @click="handleCancel(row)">取消</el-button>
-            <el-button v-if="row.status === 'DRAFT' || row.status === 'CANCELLED'" type="danger" link @click="handleDelete(row)">删除</el-button>
+            <el-button v-if="row.status === 1" type="success" link @click="handlePublish(row)">发布</el-button>
+            <el-button v-if="row.status === 2 || row.status === 3" type="danger" link @click="handleCancel(row)">取消</el-button>
+            <el-button v-if="row.status === 1" type="danger" link @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -125,12 +124,13 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
-import { get, post, put, del } from '@/utils/request'
+import { pageEvents, createEvent, updateEvent, deleteEvent, publishEvent, cancelEvent } from '@/api/event'
+import type { Event, EventDTO, EventStatus } from '@/types/event'
 
 const router = useRouter()
 
 const loading = ref(false)
-const tableData = ref<any[]>([])
+const tableData = ref<Event[]>([])
 const total = ref(0)
 
 const queryParams = reactive({
@@ -138,7 +138,7 @@ const queryParams = reactive({
   size: 10,
   name: '',
   type: '',
-  status: ''
+  status: null as EventStatus | null
 })
 
 const dialogVisible = ref(false)
@@ -147,7 +147,7 @@ const submitLoading = ref(false)
 const formRef = ref<FormInstance>()
 const editingId = ref<number | null>(null)
 
-const formData = reactive({
+const formData = reactive<EventDTO>({
   name: '',
   type: '',
   startDate: '',
@@ -176,7 +176,7 @@ onMounted(() => {
 async function loadData() {
   loading.value = true
   try {
-    const res = await get('/events', queryParams)
+    const res = await pageEvents(queryParams)
     if (res.code === 200) {
       tableData.value = res.data.records
       total.value = res.data.total
@@ -189,18 +189,17 @@ async function loadData() {
 function resetQuery() {
   queryParams.name = ''
   queryParams.type = ''
-  queryParams.status = ''
+  queryParams.status = null
   queryParams.current = 1
   loadData()
 }
 
-function getStatusType(status: string) {
-  const map: Record<string, string> = {
-    DRAFT: 'info',
-    PUBLISHED: 'primary',
-    ONGOING: 'success',
-    ENDED: 'warning',
-    CANCELLED: 'danger'
+function getStatusType(status: EventStatus): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
+  const map: Record<EventStatus, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
+    1: 'info',
+    2: 'primary',
+    3: 'success',
+    4: 'warning'
   }
   return map[status] || 'info'
 }
@@ -216,28 +215,39 @@ function handleAdd() {
   dialogVisible.value = true
 }
 
-function handleEdit(row: any) {
+function handleEdit(row: Event) {
   editingId.value = row.id
   dialogTitle.value = '编辑赛事'
-  Object.assign(formData, row)
+  Object.assign(formData, {
+    name: row.name,
+    type: row.type,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    regStartDate: row.regStartDate,
+    regEndDate: row.regEndDate,
+    location: row.location,
+    organizer: row.organizer,
+    contactPhone: row.contactPhone,
+    description: row.description
+  })
   dialogVisible.value = true
 }
 
-function handleView(row: any) {
+function handleView(row: Event) {
   router.push(`/events/${row.id}`)
 }
 
 async function handleSubmit() {
   if (!formRef.value) return
-  await formRef.value.validate(async (valid) => {
+  await formRef.value.validate(async (valid: boolean) => {
     if (!valid) return
     submitLoading.value = true
     try {
       if (editingId.value) {
-        await put(`/events/${editingId.value}`, formData)
+        await updateEvent(editingId.value, formData)
         ElMessage.success('更新成功')
       } else {
-        await post('/events', formData)
+        await createEvent(formData)
         ElMessage.success('创建成功')
       }
       dialogVisible.value = false
@@ -248,23 +258,23 @@ async function handleSubmit() {
   })
 }
 
-async function handlePublish(row: any) {
+async function handlePublish(row: Event) {
   await ElMessageBox.confirm('确定要发布该赛事吗？', '提示', { type: 'warning' })
-  await post(`/events/${row.id}/publish`)
+  await publishEvent(row.id)
   ElMessage.success('发布成功')
   loadData()
 }
 
-async function handleCancel(row: any) {
+async function handleCancel(row: Event) {
   await ElMessageBox.confirm('确定要取消该赛事吗？', '提示', { type: 'warning' })
-  await post(`/events/${row.id}/cancel`)
+  await cancelEvent(row.id)
   ElMessage.success('取消成功')
   loadData()
 }
 
-async function handleDelete(row: any) {
+async function handleDelete(row: Event) {
   await ElMessageBox.confirm('确定要删除该赛事吗？', '提示', { type: 'warning' })
-  await del(`/events/${row.id}`)
+  await deleteEvent(row.id)
   ElMessage.success('删除成功')
   loadData()
 }

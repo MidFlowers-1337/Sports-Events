@@ -102,7 +102,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
-import { get } from '@/utils/request'
+import { pageEvents } from '@/api/event'
+import { getOverviewStats, getRegistrationTop, getScoreDistribution, getMonthlyTrend, getTypeDistribution } from '@/api/statistics'
+import type { Event } from '@/types/event'
+import type { OverviewStats } from '@/types/statistics'
 
 const registrationChartRef = ref<HTMLElement>()
 const scoreChartRef = ref<HTMLElement>()
@@ -114,10 +117,10 @@ let scoreChart: echarts.ECharts | null = null
 let trendChart: echarts.ECharts | null = null
 let typeChart: echarts.ECharts | null = null
 
-const eventOptions = ref<any[]>([])
+const eventOptions = ref<Event[]>([])
 const selectedEventId = ref<number | null>(null)
 
-const overview = reactive({
+const overview = reactive<OverviewStats>({
   totalEvents: 0,
   totalParticipants: 0,
   totalRegistrations: 0,
@@ -129,7 +132,7 @@ onMounted(async () => {
   await loadOverview()
   initCharts()
   await loadAllChartData()
-  
+
   window.addEventListener('resize', handleResize)
 })
 
@@ -149,9 +152,9 @@ function handleResize() {
 }
 
 async function loadEventOptions() {
-  const res = await get('/events', { size: 100 })
+  const res = await pageEvents({ size: 100 })
   if (res.code === 200) {
-    eventOptions.value = res.data.records || []
+    eventOptions.value = res.data.records
     if (eventOptions.value.length > 0) {
       selectedEventId.value = eventOptions.value[0].id
     }
@@ -159,7 +162,7 @@ async function loadEventOptions() {
 }
 
 async function loadOverview() {
-  const res = await get('/statistics/overview')
+  const res = await getOverviewStats()
   if (res.code === 200) {
     Object.assign(overview, res.data)
   }
@@ -190,7 +193,7 @@ async function loadAllChartData() {
 }
 
 async function loadRegistrationTop() {
-  const res = await get('/statistics/registration-top')
+  const res = await getRegistrationTop()
   if (res.code === 200 && registrationChart) {
     const data = res.data || []
     registrationChart.setOption({
@@ -209,7 +212,7 @@ async function loadRegistrationTop() {
       },
       yAxis: {
         type: 'category',
-        data: data.map((item: any) => item.eventName).reverse(),
+        data: data.map((item) => item.eventName).reverse(),
         axisLabel: {
           width: 100,
           overflow: 'truncate'
@@ -218,7 +221,7 @@ async function loadRegistrationTop() {
       series: [{
         name: '报名人数',
         type: 'bar',
-        data: data.map((item: any) => item.count).reverse(),
+        data: data.map((item) => item.count).reverse(),
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#83bff6' },
@@ -232,7 +235,7 @@ async function loadRegistrationTop() {
 
 async function loadScoreDistribution() {
   if (!selectedEventId.value) return
-  const res = await get('/statistics/score-distribution', { eventId: selectedEventId.value })
+  const res = await getScoreDistribution(selectedEventId.value)
   if (res.code === 200 && scoreChart) {
     const data = res.data || []
     scoreChart.setOption({
@@ -258,7 +261,7 @@ async function loadScoreDistribution() {
           show: true,
           formatter: '{b}: {c}'
         },
-        data: data.map((item: any) => ({
+        data: data.map((item) => ({
           name: item.rankRange,
           value: item.count
         }))
@@ -268,7 +271,7 @@ async function loadScoreDistribution() {
 }
 
 async function loadMonthlyTrend() {
-  const res = await get('/statistics/monthly-trend')
+  const res = await getMonthlyTrend()
   if (res.code === 200 && trendChart) {
     const data = res.data || []
     trendChart.setOption({
@@ -287,7 +290,7 @@ async function loadMonthlyTrend() {
       xAxis: {
         type: 'category',
         boundaryGap: false,
-        data: data.map((item: any) => item.month)
+        data: data.map((item) => item.month)
       },
       yAxis: {
         type: 'value'
@@ -297,21 +300,21 @@ async function loadMonthlyTrend() {
           name: '赛事数',
           type: 'line',
           smooth: true,
-          data: data.map((item: any) => item.eventCount),
+          data: data.map((item) => item.eventCount),
           areaStyle: { opacity: 0.3 }
         },
         {
           name: '报名数',
           type: 'line',
           smooth: true,
-          data: data.map((item: any) => item.registrationCount),
+          data: data.map((item) => item.registrationCount),
           areaStyle: { opacity: 0.3 }
         },
         {
           name: '参赛人数',
           type: 'line',
           smooth: true,
-          data: data.map((item: any) => item.participantCount),
+          data: data.map((item) => item.participantCount),
           areaStyle: { opacity: 0.3 }
         }
       ]
@@ -320,7 +323,7 @@ async function loadMonthlyTrend() {
 }
 
 async function loadTypeDistribution() {
-  const res = await get('/statistics/type-distribution')
+  const res = await getTypeDistribution()
   if (res.code === 200 && typeChart) {
     const data = res.data || []
     typeChart.setOption({
@@ -332,7 +335,7 @@ async function loadTypeDistribution() {
         name: '赛事类型',
         type: 'pie',
         radius: '70%',
-        data: data.map((item: any) => ({
+        data: data.map((item) => ({
           name: item.typeName,
           value: item.count
         })),
