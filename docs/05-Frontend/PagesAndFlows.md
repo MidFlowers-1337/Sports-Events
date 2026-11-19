@@ -122,6 +122,8 @@ const routes = [
 
 ### 2.2 菜单配置
 
+> 说明：菜单已改为按角色集中配置，实际实现以 [RoleWorkbench.md](RoleWorkbench.md) 为准，下表保留最初的设计草案。
+
 #### ADMIN 菜单
 ```javascript
 const adminMenus = [

@@ -1,0 +1,356 @@
+// ============ 三角色工作台公共样式 ============
+.wb {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.wb-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 24px 28px;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  background: linear-gradient(120deg, #1d4ed8 0%, #6d28d9 58%, #db2777 100%);
+  box-shadow: 0 12px 30px -12px rgba(37, 99, 235, 0.55);
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -60px;
+    top: -80px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: 90px;
+    bottom: -110px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .wb-hero__head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .wb-hero__title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .wb-hero__desc {
+    margin-top: 8px;
+    font-size: 13px;
+    opacity: 0.88;
+  }
+
+  .wb-hero__date {
+    font-size: 13px;
+    opacity: 0.9;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .wb-hero__actions {
+    position: relative;
+    z-index: 1;
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
+.wb-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.wb-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .wb-stat__icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    color: #fff;
+    flex: 0 0 auto;
+  }
+
+  .wb-stat__value {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  .wb-stat__label {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+}
+
+.wb-icon--blue {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.wb-icon--green {
+  background: linear-gradient(135deg, #34d399, #059669);
+}
+
+.wb-icon--amber {
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+}
+
+.wb-icon--rose {
+  background: linear-gradient(135deg, #fb7185, #e11d48);
+}
+
+.wb-icon--purple {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+}
+
+.wb-cols {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.wb-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wb-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+
+  .wb-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .wb-card__title {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .wb-card__body {
+    padding: 16px 20px;
+  }
+
+  .wb-card__body--flush {
+    padding: 0;
+  }
+}
+
+.wb-chart {
+  height: 280px;
+}
+
+.wb-quick {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wb-quick__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  background: var(--bg-hover);
+  cursor: pointer;
+  transition: all 0.25s ease;
+
+  &:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+    background: var(--primary-bg);
+    transform: translateY(-2px);
+  }
+
+  .wb-quick__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 19px;
+  }
+
+  .wb-quick__label {
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+}
+
+.wb-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.wb-list__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px dashed var(--border-light);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .wb-list__main {
+    min-width: 0;
+  }
+
+  .wb-list__title {
+    font-size: 14px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .wb-list__sub {
+    margin-top: 3px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+}
+
+.wb-empty {
+  padding: 28px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.wb-medals {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.wb-medal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+
+  .wb-medal__num {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+}
+
+.wb-event-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wb-event {
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-hover);
+  transition: all 0.25s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(37, 99, 235, 0.4);
+    background: #fff;
+    box-shadow: var(--shadow-md);
+  }
+
+  .wb-event__name {
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .wb-event__meta {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .wb-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wb-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .wb-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .wb-quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wb-event-list {
+    grid-template-columns: 1fr;
+  }
+}

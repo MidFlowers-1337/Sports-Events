@@ -17,8 +17,8 @@
         </el-form-item>
       </el-form>
 
-      <!-- 操作按钮 -->
-      <div class="mb-10">
+      <!-- 操作按钮（仅管理员可维护运动项目） -->
+      <div class="mb-10" v-if="canManage">
         <el-button type="primary" @click="handleAdd">
           <el-icon><Plus /></el-icon>新增项目
         </el-button>
@@ -42,7 +42,7 @@
         <el-table-column prop="maxParticipants" label="人数上限" width="100" />
         <el-table-column prop="currentParticipants" label="已报名" width="100" />
         <el-table-column prop="rules" label="比赛规则" min-width="200" show-overflow-tooltip />
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column v-if="canManage" label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
             <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
@@ -122,9 +122,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
 import { get, post, put, del } from '@/utils/request'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const canManage = computed(() => userStore.isAdmin)
 
 const loading = ref(false)
 const tableData = ref<any[]>([])

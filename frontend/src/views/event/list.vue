@@ -22,8 +22,8 @@
         </el-form-item>
       </el-form>
 
-      <!-- 操作按钮 -->
-      <div class="mb-10" v-if="isManager">
+      <!-- 操作按钮（仅管理员可维护赛事） -->
+      <div class="mb-10" v-if="isAdmin">
         <el-button type="primary" @click="handleAdd">
           <el-icon><Plus /></el-icon>新增赛事
         </el-button>
@@ -49,10 +49,10 @@
             <el-tag :type="getStatusType(row.status)">{{ row.statusName }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" :width="isManager ? 220 : 90" fixed="right">
+        <el-table-column label="操作" :width="isAdmin ? 220 : 90" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleView(row)">查看</el-button>
-            <template v-if="isManager">
+            <template v-if="isAdmin">
               <el-button
                 v-if="row.status === 1 || row.status === 2 || row.status === 5"
                 type="primary"
@@ -137,6 +137,7 @@ import { useUserStore } from '@/stores/user'
 const router = useRouter()
 const userStore = useUserStore()
 const isManager = computed(() => userStore.isManager)
+const isAdmin = computed(() => userStore.isAdmin)
 
 const TYPE_OPTIONS = [
   { label: '田径', value: 'TRACK_FIELD' },

@@ -17,8 +17,8 @@
         </el-form-item>
       </el-form>
 
-      <!-- 操作按钮 -->
-      <div class="mb-10">
+      <!-- 操作按钮（仅管理员可编排赛程） -->
+      <div class="mb-10" v-if="canManage">
         <el-button type="primary" @click="handleAdd">
           <el-icon><Plus /></el-icon>新增赛程
         </el-button>
@@ -41,7 +41,7 @@
             <el-tag :type="getStatusType(row.status)">{{ row.statusName || getStatusName(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column v-if="canManage" label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.status !== 3" type="primary" link @click="handleEdit(row)">编辑</el-button>
             <el-button v-if="row.status === 1" type="success" link @click="handleStart(row)">开始</el-button>
@@ -111,9 +111,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
 import { get, post, put, del } from '@/utils/request'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+const canManage = computed(() => userStore.isAdmin)
 
 const loading = ref(false)
 const tableData = ref<any[]>([])

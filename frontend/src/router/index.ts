@@ -109,6 +109,12 @@ const routes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: '/403',
+    name: 'Forbidden',
+    component: () => import('@/views/error/403.vue'),
+    meta: { title: '无访问权限', public: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/error/404.vue'),
@@ -152,12 +158,12 @@ router.beforeEach(async (to, _from, next) => {
     }
   }
 
-  // 检查角色权限
+  // 检查角色权限，越权访问统一跳转到 403 页面
   const roles = to.meta.roles as string[] | undefined
   if (roles && roles.length > 0) {
     const userRole = userStore.userInfo?.role
     if (!userRole || !roles.includes(userRole)) {
-      next({ path: '/dashboard' })
+      next({ path: '/403', query: { from: to.fullPath } })
       return
     }
   }

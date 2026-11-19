@@ -15,10 +15,20 @@
         text-color="#bfcbd9"
         active-text-color="#409eff"
       >
-        <template v-for="route in menuRoutes" :key="route.path">
-          <el-menu-item v-if="!route.meta?.hidden" :index="route.path">
-            <el-icon><component :is="route.meta?.icon" /></el-icon>
-            <template #title>{{ route.meta?.title }}</template>
+        <template v-for="node in menus" :key="isMenuGroup(node) ? node.title : node.path">
+          <el-sub-menu v-if="isMenuGroup(node)" :index="node.title">
+            <template #title>
+              <el-icon><component :is="node.icon" /></el-icon>
+              <span>{{ node.title }}</span>
+            </template>
+            <el-menu-item v-for="child in node.children" :key="child.path" :index="child.path">
+              <el-icon><component :is="child.icon" /></el-icon>
+              <template #title>{{ child.title }}</template>
+            </el-menu-item>
+          </el-sub-menu>
+          <el-menu-item v-else :index="node.path">
+            <el-icon><component :is="node.icon" /></el-icon>
+            <template #title>{{ node.title }}</template>
           </el-menu-item>
         </template>
       </el-menu>
@@ -33,8 +43,8 @@
             <Expand v-else />
           </el-icon>
           <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item v-if="currentRoute?.meta?.title">
+            <el-breadcrumb-item :to="{ path: '/dashboard' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item v-if="currentRoute?.meta?.title && currentRoute.path !== '/dashboard'">
               {{ currentRoute.meta.title }}
             </el-breadcrumb-item>
           </el-breadcrumb>
@@ -46,6 +56,7 @@
                 {{ userStore.userInfo?.realName?.charAt(0) }}
               </el-avatar>
               <span class="username">{{ userStore.userInfo?.realName }}</span>
+              <el-tag class="role-tag" size="small" effect="plain">{{ roleName }}</el-tag>
               <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
@@ -94,6 +105,8 @@
 import { ref, reactive, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { getMenusByRole, isMenuGroup } from '@/config/menus'
+import { ROLE_LABELS } from '@/utils/permission'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
 import { post } from '@/utils/request'
 
@@ -163,18 +176,13 @@ async function submitPwd() {
 const activeMenu = computed(() => route.path)
 const currentRoute = computed(() => route)
 
-// 根据角色过滤菜单
-const menuRoutes = computed(() => {
-  const routes = router.options.routes.find(r => r.path === '/')?.children || []
-  const userRole = userStore.userInfo?.role
+// 按当前登录角色取侧边栏菜单
+const menus = computed(() => getMenusByRole(userStore.userInfo?.role))
 
-  return routes.filter(r => {
-    if (r.meta?.hidden) return false
-    const roles = r.meta?.roles as string[] | undefined
-    if (!roles || roles.length === 0) return true
-    return userRole && roles.includes(userRole)
-  })
-})
+// 头部角色标识
+const roleName = computed(
+  () => userStore.userInfo?.roleName || ROLE_LABELS[userStore.userInfo?.role || ''] || ''
+)
 
 function toggleCollapse() {
   isCollapse.value = !isCollapse.value
@@ -359,5 +367,40 @@ function handleCommand(command: string) {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(8px);
+}
+
+// 分组菜单标题与子菜单项
+.layout-aside :deep(.el-sub-menu__title) {
+  color: rgba(255, 255, 255, 0.75) !important;
+  height: 46px !important;
+  line-height: 46px !important;
+  font-weight: 500;
+
+  .el-icon {
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-size: 18px;
+  }
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #fff !important;
+  }
+}
+
+.layout-aside :deep(.el-sub-menu .el-menu-item) {
+  padding-left: 48px !important;
+  min-width: auto !important;
+  background: transparent !important;
+}
+
+.layout-aside :deep(.el-menu--collapse .el-sub-menu__title .el-icon) {
+  margin-right: 0;
+}
+
+.role-tag {
+  margin-right: 6px;
+  border-color: rgba(37, 99, 235, 0.35);
+  color: var(--primary);
+  background: var(--primary-bg);
 }
 </style>

@@ -30,6 +30,7 @@
 | 文档 | 说明 | 状态 |
 |------|------|------|
 | [PagesAndFlows.md](05-Frontend/PagesAndFlows.md) | 页面清单、路由菜单、交互流程、异常提示 | ✅ 完成 |
+| [RoleWorkbench.md](05-Frontend/RoleWorkbench.md) | 三角色工作台、菜单配置与权限矩阵 | ✅ 完成 |
 
 ### 6. 测试文档 (06-Test)
 | 文档 | 说明 | 状态 |

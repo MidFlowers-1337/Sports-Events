@@ -7,8 +7,10 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 import App from './App.vue'
 import router from './router'
+import permission from './directives/permission'
 
 import './styles/index.scss'
+import './styles/workbench.scss'
 
 const app = createApp(App)
 
@@ -16,6 +18,9 @@ const app = createApp(App)
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
+
+// 按钮级权限指令
+app.directive('permission', permission)
 
 app.use(createPinia())
 app.use(router)
